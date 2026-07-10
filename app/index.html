@@ -518,6 +518,15 @@
   const STORAGE_KEY = 'microcomponente_historial';
   const MAX_HISTORY = 500;
 
+  const GATOS = {
+    'ab:cd:ef:01': 'Gato 1',
+    '12:34:56:78': 'Gato 2',
+  };
+
+  function getGato(uid) {
+    return GATOS[uid.toLowerCase()] || null;
+  }
+
   let port = null;
   let reader = null;
   let connected = false;
@@ -625,7 +634,7 @@
         <td>${e.time || '--:--:--'}</td>
         <td>${e.weight != null ? e.weight.toFixed(2) : '—'}</td>
         <td class="${irClass}">${irText}</td>
-        <td class="tag-rfid">${e.uid || '—'}</td>
+        <td class="tag-rfid">${e.uid ? (getGato(e.uid) || e.uid.toUpperCase()) : '—'}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -646,8 +655,9 @@
 
   function updateRFID(uid) {
     if (uid && uid.length > 0) {
-      rfidLabel.textContent = uid.toUpperCase();
-      rfidLabel.className = 'indicator-value rfid-value';
+      const gato = getGato(uid);
+      rfidLabel.textContent = gato ? gato : uid.toUpperCase();
+      rfidLabel.className = gato ? 'indicator-value rfid-value' : 'indicator-value rfid-value empty';
     } else {
       rfidLabel.textContent = '---';
       rfidLabel.className = 'indicator-value rfid-value empty';
@@ -668,11 +678,14 @@
           updateIR(data.i);
           addToHistory({ type:'sensor', weight: data.w, ir: data.i, uid: null });
           break;
-        case 'r':
-          updateRFID(data.u);
-          addToHistory({ type:'rfid', weight: null, ir: null, uid: data.u });
-          toast('RFID: ' + data.u.toUpperCase());
+        case 'r': {
+          const uid = data.u;
+          const gato = getGato(uid);
+          updateRFID(uid);
+          addToHistory({ type:'rfid', weight: null, ir: null, uid });
+          toast(gato ? gato + ' registrado' : 'RFID desconocido: ' + uid.toUpperCase());
           break;
+        }
         case 'c':
           updateCalibration(data.f);
           toast('Calibración: ' + data.f);
