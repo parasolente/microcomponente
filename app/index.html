@@ -3,280 +3,515 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>MicroComponente</title>
+  <meta name="description" content="µComponente — Monitor de peso, RFID y sensor IR para ESP32">
+  <title>µComponente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f1923;
-      color: #e0e6ed;
-      min-height: 100vh;
-      padding: 16px;
-    }
-    .container { max-width: 480px; margin: 0 auto; }
+    /* ============================================
+       µComponente — Estilo MIAUKI
+       Colors: #E69D81 (terracota), #FFF5ED (crema),
+               #2D1F1A (texto), #ece0d8 (bordes)
+       ============================================ */
 
-    /* Header */
-    header {
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      font-size: 1.125rem;
+      line-height: 1.65;
+      color: #2D1F1A;
+      background: #FFF5ED;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    img { max-width: 100%; height: auto; display: block; }
+    a { color: inherit; text-decoration: none; }
+    ul { list-style: none; }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
+    }
+
+    /* ========== Header ========== */
+    .header {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%;
+      z-index: 100;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    .header--scrolled {
+      border-bottom-color: #ece0d8;
+      background: rgba(255,255,255,0.97);
+    }
+
+    .header__inner {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      justify-content: space-between;
+      height: 64px;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
     }
-    h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-    h1 span { color: #00d4aa; }
+
+    .header__logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem;
+      color: #2D1F1A;
+      line-height: 1;
+    }
+    .header__logo span { color: #E69D81; }
+
     .btn-connect {
-      background: #1a2d3a;
-      border: 1px solid #2a4a5a;
-      color: #e0e6ed;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.875rem;
+      border: 2px solid #E69D81;
+      border-radius: 100px;
       cursor: pointer;
-      transition: all .2s;
+      transition: background 0.25s, border-color 0.25s, transform 0.15s;
+      white-space: nowrap;
+      padding: 0.5rem 1.25rem;
+      background: transparent;
+      color: #E69D81;
+      position: relative;
+      overflow: hidden;
     }
-    .btn-connect:hover { background: #2a4a5a; }
+
+    .btn-connect .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(230,157,129,0.3);
+      transform: scale(0);
+      animation: ripple-anim 0.55s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes ripple-anim { to { transform: scale(3.5); opacity: 0; } }
+
+    .btn-connect:hover {
+      background: #E69D81;
+      color: #FFFFFF;
+    }
+    .btn-connect:active { transform: scale(0.96); }
+
     .btn-connect.connected {
-      background: #00d4aa22;
-      border-color: #00d4aa;
-      color: #00d4aa;
+      background: #E69D81;
+      color: #FFFFFF;
+      border-color: #E69D81;
     }
+
     .status-dot {
       display: inline-block;
       width: 8px; height: 8px;
       border-radius: 50%;
-      margin-right: 6px;
-      background: #ff4444;
-      transition: background .3s;
+      margin-right: 7px;
+      background: #d0c0b8;
+      transition: background 0.3s, box-shadow 0.3s;
     }
-    .status-dot.on { background: #00d4aa; }
+    .status-dot.on {
+      background: #66bf8b;
+      box-shadow: 0 0 6px rgba(102,191,139,0.5);
+    }
 
-    /* Weight Card */
+    .header__spacer { height: 64px; }
+
+    /* ========== Weight Card ========== */
     .weight-card {
-      background: linear-gradient(135deg, #1a2d3a 0%, #0f1923 100%);
-      border: 1px solid #2a4a5a;
+      margin-top: 1.25rem;
+      background: linear-gradient(135deg, #FFF5ED 0%, #f5e0d4 50%, #FFF5ED 100%);
+      background-size: 200% 200%;
+      animation: gradient-shift 8s ease-in-out infinite;
+      border: 1px solid #ece0d8;
       border-radius: 16px;
-      padding: 28px 24px;
+      padding: 2rem 1.5rem;
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 1rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
     }
-    .weight-value {
-      font-size: 56px;
-      font-weight: 800;
-      line-height: 1;
-      color: #ffffff;
-      font-variant-numeric: tabular-nums;
+    .weight-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(45,31,26,0.06);
     }
-    .weight-value .decimal { font-size: 32px; color: #00d4aa; }
-    .weight-unit { font-size: 18px; color: #6b8a9a; margin-top: 4px; }
 
-    /* Indicators Row */
+    @keyframes gradient-shift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .weight-value {
+      font-family: 'DM Serif Display', serif;
+      font-size: 3.5rem;
+      line-height: 1;
+      color: #2D1F1A;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .weight-value .decimal { font-size: 2rem; color: #E69D81; }
+    .weight-unit {
+      font-size: 1rem;
+      color: #5a4a44;
+      margin-top: 0.25rem;
+      font-weight: 500;
+    }
+
+    /* ========== Indicators ========== */
     .indicators {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
     }
+
     .indicator {
-      background: #1a2d3a;
-      border: 1px solid #2a4a5a;
+      background: #FFFFFF;
+      border: 1px solid #ece0d8;
       border-radius: 12px;
-      padding: 14px 16px;
+      padding: 1rem 1.125rem;
+      transition: transform 0.25s, box-shadow 0.25s;
     }
-    .indicator-label { font-size: 11px; color: #6b8a9a; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-    .indicator-value { font-size: 15px; font-weight: 600; }
+    .indicator:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(45,31,26,0.04);
+    }
+
+    .indicator-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: #5a4a44;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.375rem;
+    }
+
+    .indicator-value {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: #2D1F1A;
+    }
+
     .indicator-value .ir-led {
       display: inline-block;
       width: 10px; height: 10px;
       border-radius: 50%;
       margin-right: 6px;
       vertical-align: middle;
+      transition: background 0.3s, box-shadow 0.3s;
     }
-    .ir-led.on { background: #ff4444; box-shadow: 0 0 8px #ff4444; }
-    .ir-led.off { background: #2a4a5a; }
-    .rfid-value { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 13px; color: #00d4aa; word-break: break-all; }
-    .rfid-value.empty { color: #6b8a9a; }
+    .ir-led.on { background: #E69D81; box-shadow: 0 0 8px rgba(230,157,129,0.5); }
+    .ir-led.off { background: #d0c0b8; }
 
-    /* History */
-    .history-card {
-      background: #1a2d3a;
-      border: 1px solid #2a4a5a;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      overflow: hidden;
+    .rfid-value {
+      font-family: 'SF Mono', 'Cascadia Code', 'Menlo', monospace;
+      font-size: 0.8125rem;
+      color: #E69D81;
+      word-break: break-all;
+      font-weight: 500;
     }
+    .rfid-value.empty { color: #bfb0a8; font-weight: 400; }
+
+    /* ========== History ========== */
+    .history-card {
+      background: #FFFFFF;
+      border: 1px solid #ece0d8;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: box-shadow 0.3s;
+    }
+    .history-card:hover { box-shadow: 0 4px 12px rgba(45,31,26,0.04); }
+
     .history-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      border-bottom: 1px solid #2a4a5a;
+      padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid #ece0d8;
     }
-    .history-header h3 { font-size: 13px; font-weight: 600; }
-    .history-actions { display: flex; gap: 8px; }
+    .history-header h3 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.0625rem;
+      font-weight: 400;
+      color: #2D1F1A;
+    }
+    .history-actions { display: flex; gap: 0.5rem; }
+
     .btn-sm {
-      background: none;
-      border: 1px solid #2a4a5a;
-      color: #6b8a9a;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.6875rem;
+      border: 1.5px solid #ece0d8;
+      border-radius: 100px;
       cursor: pointer;
-      transition: all .2s;
+      padding: 0.3rem 0.75rem;
+      background: transparent;
+      color: #5a4a44;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
     }
-    .btn-sm:hover { border-color: #00d4aa; color: #00d4aa; }
-    .history-table-wrap { max-height: 220px; overflow-y: auto; }
+    .btn-sm:hover { border-color: #E69D81; color: #E69D81; }
+
+    .history-table-wrap {
+      max-height: 220px;
+      overflow-y: auto;
+    }
     .history-table-wrap::-webkit-scrollbar { width: 4px; }
-    .history-table-wrap::-webkit-scrollbar-thumb { background: #2a4a5a; border-radius: 4px; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .history-table-wrap::-webkit-scrollbar-thumb { background: #ece0d8; border-radius: 4px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
     th {
       position: sticky; top: 0;
-      background: #1a2d3a;
-      padding: 8px 12px;
+      background: #FFF5ED;
+      padding: 0.625rem 1rem;
       text-align: left;
-      color: #6b8a9a;
+      color: #5a4a44;
       font-weight: 600;
-      font-size: 10px;
+      font-size: 0.625rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid #2a4a5a;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid #ece0d8;
     }
-    td { padding: 8px 12px; border-bottom: 1px solid #1f3543; }
+    td {
+      padding: 0.625rem 1rem;
+      border-bottom: 1px solid #f5ece6;
+      color: #2D1F1A;
+    }
     tr:last-child td { border-bottom: none; }
-    .tag-rfid { color: #ffaa44; }
-    .tag-ir-on { color: #ff4444; }
-    .tag-ir-off { color: #6b8a9a; }
-    .row-rfid { background: #1f354355; }
+    tr:hover td { background: #FFF5ED55; }
 
-    /* Controls */
-    .controls {
-      background: #1a2d3a;
-      border: 1px solid #2a4a5a;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
+    .tag-rfid { color: #E69D81; font-weight: 500; }
+    .tag-ir-on { color: #E69D81; font-weight: 500; }
+    .tag-ir-off { color: #bfb0a8; }
+    .row-rfid { background: #faf0e855; }
+
+    .empty-state {
+      padding: 2rem;
+      text-align: center;
+      color: #bfb0a8;
+      font-size: 0.875rem;
     }
+
+    /* ========== Controls ========== */
+    .controls {
+      background: #FFFFFF;
+      border: 1px solid #ece0d8;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      transition: box-shadow 0.3s;
+    }
+    .controls:hover { box-shadow: 0 4px 12px rgba(45,31,26,0.04); }
+
     .control-row {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 0.625rem;
     }
-    .control-row:last-child { margin-bottom: 0; }
-    .control-row label { font-size: 13px; font-weight: 500; min-width: 90px; }
+    .control-row label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #2D1F1A;
+      min-width: 5.5rem;
+      white-space: nowrap;
+    }
     .control-row input {
       flex: 1;
-      background: #0f1923;
-      border: 1px solid #2a4a5a;
-      border-radius: 6px;
-      padding: 8px 12px;
-      color: #e0e6ed;
-      font-size: 14px;
-      font-family: 'SF Mono', monospace;
+      background: #FFF5ED;
+      border: 1.5px solid #ece0d8;
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      color: #2D1F1A;
+      font-size: 0.875rem;
+      font-family: 'SF Mono', 'Menlo', monospace;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .control-row input:focus { outline: none; border-color: #00d4aa; }
+    .control-row input:focus {
+      outline: none;
+      border-color: #E69D81;
+      box-shadow: 0 0 0 3px rgba(230,157,129,0.15);
+    }
+
     .btn {
-      background: #00d4aa;
-      border: none;
-      color: #0f1923;
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Inter', sans-serif;
       font-weight: 600;
+      font-size: 0.875rem;
+      border: 2px solid transparent;
+      border-radius: 100px;
       cursor: pointer;
-      transition: all .2s;
+      padding: 0.55rem 1.25rem;
+      transition: background 0.25s, border-color 0.25s, transform 0.15s;
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
     }
-    .btn:hover { background: #00e6b8; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-outline {
-      background: none;
-      border: 1px solid #2a4a5a;
-      color: #e0e6ed;
+    .btn:active { transform: scale(0.96); }
+
+    .btn--primary {
+      background: #E69D81;
+      color: #FFFFFF;
+      border-color: #E69D81;
     }
-    .btn-outline:hover { border-color: #00d4aa; color: #00d4aa; }
+    .btn--primary:hover { background: #D4856A; border-color: #D4856A; }
 
-    .footer { text-align: center; padding: 16px; font-size: 11px; color: #2a4a5a; }
+    .btn--outline {
+      background: transparent;
+      border-color: #ece0d8;
+      color: #5a4a44;
+    }
+    .btn--outline:hover { border-color: #E69D81; color: #E69D81; }
 
-    .empty-state { padding: 24px; text-align: center; color: #2a4a5a; font-size: 13px; }
+    .btn--sm { padding: 0.35rem 1rem; font-size: 0.8125rem; }
 
+    /* ========== Footer ========== */
+    .footer {
+      padding: 1.5rem 0;
+      background: #2D1F1A;
+      color: rgba(255,255,255,0.5);
+      font-size: 0.8125rem;
+      text-align: center;
+      margin-top: 1.5rem;
+      border-radius: 12px 12px 0 0;
+    }
+
+    /* ========== Toast ========== */
     .toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      background: #1a2d3a; border: 1px solid #2a4a5a; border-radius: 8px;
-      padding: 10px 20px; font-size: 13px; color: #e0e6ed;
-      opacity: 0; transition: opacity .3s; pointer-events: none;
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #2D1F1A;
+      border: none;
+      border-radius: 100px;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      color: #FFFFFF;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      z-index: 200;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(45,31,26,0.15);
     }
     .toast.show { opacity: 1; }
+
+    /* ========== Mobile ========== */
+    @media (max-width: 479px) {
+      .weight-value { font-size: 2.75rem; }
+      .weight-value .decimal { font-size: 1.625rem; }
+      .indicators { gap: 0.5rem; }
+      .indicator { padding: 0.75rem 0.875rem; }
+      .indicator-value .rfid-value { font-size: 0.75rem; }
+      .control-row { flex-wrap: wrap; }
+      .control-row label { min-width: auto; width: 100%; margin-bottom: 0.25rem; }
+    }
   </style>
 </head>
 <body>
-<div class="container">
-  <header>
-    <h1>µ<span>Componente</span></h1>
-    <button class="btn-connect" id="btnConnect">
-      <span class="status-dot" id="statusDot"></span>
-      <span id="connectLabel">Conectar</span>
-    </button>
+  <header class="header" id="header">
+    <div class="header__inner">
+      <a href="#" class="header__logo">µ<span>Componente</span></a>
+      <button class="btn-connect" id="btnConnect">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="connectLabel">Conectar</span>
+      </button>
+    </div>
   </header>
 
-  <div class="weight-card">
-    <div class="weight-value">
-      <span id="weightInt">0</span><span class="decimal">.<span id="weightDec">00</span></span>
-    </div>
-    <div class="weight-unit">gramos</div>
-  </div>
+  <div class="header__spacer"></div>
 
-  <div class="indicators">
-    <div class="indicator">
-      <div class="indicator-label">Sensor IR</div>
-      <div class="indicator-value">
-        <span class="ir-led off" id="irLed"></span>
-        <span id="irLabel">Sin objeto</span>
+  <div class="container">
+    <div class="weight-card">
+      <div class="weight-value">
+        <span id="weightInt">0</span><span class="decimal">.<span id="weightDec">00</span></span>
+      </div>
+      <div class="weight-unit">gramos</div>
+    </div>
+
+    <div class="indicators">
+      <div class="indicator">
+        <div class="indicator-label">Sensor IR</div>
+        <div class="indicator-value">
+          <span class="ir-led off" id="irLed"></span>
+          <span id="irLabel">Sin objeto</span>
+        </div>
+      </div>
+      <div class="indicator">
+        <div class="indicator-label">Último RFID</div>
+        <div class="indicator-value rfid-value empty" id="rfidLabel">---</div>
       </div>
     </div>
-    <div class="indicator">
-      <div class="indicator-label">Último RFID</div>
-      <div class="indicator-value rfid-value empty" id="rfidLabel">---</div>
-    </div>
-  </div>
 
-  <div class="history-card">
-    <div class="history-header">
-      <h3>📋 Historial</h3>
-      <div class="history-actions">
-        <button class="btn-sm" id="btnClear">Limpiar</button>
-        <button class="btn-sm" id="btnExportCSV">CSV</button>
-        <button class="btn-sm" id="btnExportJSON">JSON</button>
+    <div class="history-card">
+      <div class="history-header">
+        <h3>Historial</h3>
+        <div class="history-actions">
+          <button class="btn-sm" id="btnClear">Limpiar</button>
+          <button class="btn-sm" id="btnExportCSV">CSV</button>
+          <button class="btn-sm" id="btnExportJSON">JSON</button>
+        </div>
+      </div>
+      <div class="history-table-wrap" id="historyWrap">
+        <table>
+          <thead><tr>
+            <th>Hora</th><th>Peso (g)</th><th>IR</th><th>RFID</th>
+          </tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState">Aún no hay lecturas</div>
       </div>
     </div>
-    <div class="history-table-wrap" id="historyWrap">
-      <table>
-        <thead><tr>
-          <th>Hora</th><th>Peso (g)</th><th>IR</th><th>RFID</th>
-        </tr></thead>
-        <tbody id="historyBody"></tbody>
-      </table>
-      <div class="empty-state" id="emptyState">Aún no hay lecturas</div>
+
+    <div class="controls">
+      <div class="control-row">
+        <label>Calibración</label>
+        <input type="text" id="calInput" value="-7050.0">
+        <button class="btn btn--primary" id="btnCal">Aplicar</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control-row">
+        <label>Prueba</label>
+        <button class="btn btn--outline" id="btnTestData">Datos de prueba</button>
+      </div>
     </div>
   </div>
 
-  <div class="controls">
-    <div class="control-row">
-      <label>Calibración</label>
-      <input type="text" id="calInput" value="-7050.0">
-      <button class="btn" id="btnCal">Aplicar</button>
-    </div>
-  </div>
+  <footer class="footer">
+    µComponente &middot; WebSerial &middot; ESP32
+  </footer>
 
-  <div class="controls">
-    <div class="control-row">
-      <label style="min-width:auto;">Conexión Serial</label>
-      <button class="btn btn-outline" id="btnTestData">Datos de prueba</button>
-    </div>
-  </div>
-
-  <div class="footer">µComponente &mdash; WebSerial + ESP32</div>
-</div>
-
-<div class="toast" id="toast"></div>
+  <div class="toast" id="toast"></div>
 
 <script>
 (() => {
@@ -294,6 +529,7 @@
 
   const $ = id => document.getElementById(id);
 
+  const header        = $('header');
   const btnConnect    = $('btnConnect');
   const connectLabel  = $('connectLabel');
   const statusDot     = $('statusDot');
@@ -311,6 +547,30 @@
   const btnExportJSON = $('btnExportJSON');
   const btnTestData   = $('btnTestData');
   const toastEl       = $('toast');
+
+  // ========== Scroll detection ==========
+  let scrollRAF;
+  function onScroll() {
+    if (scrollRAF) return;
+    scrollRAF = requestAnimationFrame(() => {
+      header.classList.toggle('header--scrolled', window.scrollY > 10);
+      scrollRAF = null;
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  // ========== Ripple ==========
+  function ripple(e, el) {
+    const rect = el.getBoundingClientRect();
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    const size = Math.max(rect.width, rect.height);
+    r.style.width = r.style.height = size + 'px';
+    r.style.left = (e.clientX - rect.left - size / 2) + 'px';
+    r.style.top = (e.clientY - rect.top - size / 2) + 'px';
+    el.appendChild(r);
+    setTimeout(() => r.remove(), 600);
+  }
 
   // ========== Toast ==========
   let toastTimer;
@@ -360,7 +620,7 @@
       const tr = document.createElement('tr');
       if (e.type === 'rfid') tr.className = 'row-rfid';
       const irClass = e.ir ? 'tag-ir-on' : 'tag-ir-off';
-      const irText = e.ir ? '🔴 DETECTADO' : '⚫ Sin objeto';
+      const irText = e.ir ? 'DETECTADO' : 'Sin objeto';
       tr.innerHTML = `
         <td>${e.time || '--:--:--'}</td>
         <td>${e.weight != null ? e.weight.toFixed(2) : '—'}</td>
@@ -381,7 +641,7 @@
 
   function updateIR(detected) {
     irLed.className = 'ir-led ' + (detected ? 'on' : 'off');
-    irLabel.textContent = detected ? '🔴 Objeto detectado' : '⚫ Sin objeto';
+    irLabel.textContent = detected ? 'Objeto detectado' : 'Sin objeto';
   }
 
   function updateRFID(uid) {
@@ -411,14 +671,14 @@
         case 'r':
           updateRFID(data.u);
           addToHistory({ type:'rfid', weight: null, ir: null, uid: data.u });
-          toast('🏷️ RFID: ' + data.u.toUpperCase());
+          toast('RFID: ' + data.u.toUpperCase());
           break;
         case 'c':
           updateCalibration(data.f);
-          toast('⚙️ Calibración: ' + data.f);
+          toast('Calibración: ' + data.f);
           break;
         case 'st':
-          toast('ℹ️ ' + data.m);
+          toast(data.m);
           break;
       }
     } catch {}
@@ -458,7 +718,7 @@
   // ========== Connect / Disconnect ==========
   async function connect() {
     if (!('serial' in navigator)) {
-      toast('❌ WebSerial no disponible. Usa Chrome/Edge.');
+      toast('WebSerial no disponible. Usa Chrome/Edge.');
       return;
     }
     try {
@@ -466,11 +726,11 @@
       await port.open({ baudRate: 115200 });
       connected = true;
       updateConnectUI(true);
-      toast('✅ Conectado');
+      toast('Conectado');
       readLoop();
     } catch (err) {
       if (err.name !== 'NotFoundError') {
-        toast('❌ Error: ' + err.message);
+        toast('Error: ' + err.message);
       }
       port = null;
     }
@@ -487,20 +747,19 @@
       try { port.close(); } catch {}
       port = null;
     }
-    toast('🔌 Desconectado');
+    toast('Desconectado');
   }
 
   function updateConnectUI(isOn) {
     btnConnect.className = 'btn-connect' + (isOn ? ' connected' : '');
     connectLabel.textContent = isOn ? 'Conectado' : 'Conectar';
     statusDot.className = 'status-dot' + (isOn ? ' on' : '');
-    btnConnect.title = isOn ? 'Haz clic para desconectar' : 'Conectar al ESP32';
   }
 
   // ========== Send to Serial ==========
   async function sendSerial(msg) {
     if (!port || !port.writable) {
-      if (!testMode) toast('⚠️ No hay conexión Serial activa');
+      if (!testMode) toast('No hay conexión Serial activa');
       return false;
     }
     try {
@@ -519,7 +778,7 @@
     if (testMode) return;
     testMode = true;
     btnTestData.textContent = 'Detener prueba';
-    toast('🧪 Generando datos de prueba...');
+    toast('Generando datos de prueba...');
     let peso = 100;
     testInterval = setInterval(() => {
       peso += (Math.random() - 0.5) * 5;
@@ -541,17 +800,17 @@
     clearInterval(testInterval);
     testInterval = null;
     btnTestData.textContent = 'Datos de prueba';
-    toast('🧪 Prueba detenida');
+    toast('Prueba detenida');
   }
 
   // ========== Calibration ==========
   async function applyCalibration() {
     const val = parseFloat(calInput.value);
-    if (isNaN(val)) { toast('⚠️ Ingresa un número válido'); return; }
+    if (isNaN(val)) { toast('Ingresa un número válido'); return; }
     updateCalibration(val);
     const ok = await sendSerial(JSON.stringify({ t:'cal', f: val }));
-    if (ok) toast('⚙️ Calibración enviada: ' + val.toFixed(1));
-    else if (!testMode) toast('⚠️ No se pudo enviar. ¿ESP32 conectado?');
+    if (ok) toast('Calibración enviada: ' + val.toFixed(1));
+    else if (!testMode) toast('No se pudo enviar. ¿ESP32 conectado?');
   }
 
   // ========== Clear History ==========
@@ -563,12 +822,12 @@
     renderHistory();
     updateWeight(0);
     updateIR(false);
-    toast('🗑️ Historial limpiado');
+    toast('Historial limpiado');
   }
 
   // ========== Export ==========
   function exportCSV() {
-    if (history.length === 0) { toast('⚠️ No hay datos para exportar'); return; }
+    if (history.length === 0) { toast('No hay datos para exportar'); return; }
     const header = 'Hora,Peso (g),IR,RFID\n';
     const rows = history.map(e => {
       const ir = e.ir === true ? 'DETECTADO' : (e.ir === false ? 'SIN_OBJETO' : '');
@@ -577,14 +836,14 @@
       return `${e.time || ''},${weight},${ir},${uid}`;
     }).join('\n');
     download(header + rows, 'microcomponente_historial.csv', 'text/csv');
-    toast('📥 CSV descargado');
+    toast('CSV descargado');
   }
 
   function exportJSON() {
-    if (history.length === 0) { toast('⚠️ No hay datos para exportar'); return; }
+    if (history.length === 0) { toast('No hay datos para exportar'); return; }
     const json = JSON.stringify(history, null, 2);
     download(json, 'microcomponente_historial.json', 'application/json');
-    toast('📥 JSON descargado');
+    toast('JSON descargado');
   }
 
   function download(content, filename, mime) {
@@ -599,21 +858,22 @@
   }
 
   // ========== Event Listeners ==========
-  btnConnect.addEventListener('click', () => {
-    if (connected) {
-      disconnect();
-    } else {
-      stopTestMode();
-      connect();
-    }
+  btnConnect.addEventListener('click', e => {
+    ripple(e, btnConnect);
+    if (connected) { disconnect(); }
+    else { stopTestMode(); connect(); }
   });
 
-  btnTestData.addEventListener('click', () => {
+  btnTestData.addEventListener('click', e => {
+    ripple(e, btnTestData);
     if (testMode) { stopTestMode(); }
     else { if (connected) disconnect(); startTestMode(); }
   });
 
-  btnCal.addEventListener('click', applyCalibration);
+  btnCal.addEventListener('click', e => {
+    ripple(e, btnCal);
+    applyCalibration();
+  });
   calInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyCalibration(); });
 
   btnClear.addEventListener('click', clearHistory);
@@ -625,11 +885,8 @@
   updateConnectUI(false);
 
   if ('serial' in navigator) {
-    navigator.serial.addEventListener('disconnect', (e) => {
-      if (port && port === e.target) {
-        disconnect();
-        toast('🔌 Puerto desconectado');
-      }
+    navigator.serial.addEventListener('disconnect', e => {
+      if (port && port === e.target) { disconnect(); toast('Puerto desconectado'); }
     });
   }
 })();
