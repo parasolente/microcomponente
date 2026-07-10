@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>MicroComponente</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f1923;
+      color: #e0e6ed;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .container { max-width: 480px; margin: 0 auto; }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    h1 span { color: #00d4aa; }
+    .btn-connect {
+      background: #1a2d3a;
+      border: 1px solid #2a4a5a;
+      color: #e0e6ed;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-connect:hover { background: #2a4a5a; }
+    .btn-connect.connected {
+      background: #00d4aa22;
+      border-color: #00d4aa;
+      color: #00d4aa;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      background: #ff4444;
+      transition: background .3s;
+    }
+    .status-dot.on { background: #00d4aa; }
+
+    /* Weight Card */
+    .weight-card {
+      background: linear-gradient(135deg, #1a2d3a 0%, #0f1923 100%);
+      border: 1px solid #2a4a5a;
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .weight-value {
+      font-size: 56px;
+      font-weight: 800;
+      line-height: 1;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+    }
+    .weight-value .decimal { font-size: 32px; color: #00d4aa; }
+    .weight-unit { font-size: 18px; color: #6b8a9a; margin-top: 4px; }
+
+    /* Indicators Row */
+    .indicators {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .indicator {
+      background: #1a2d3a;
+      border: 1px solid #2a4a5a;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .indicator-label { font-size: 11px; color: #6b8a9a; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .indicator-value { font-size: 15px; font-weight: 600; }
+    .indicator-value .ir-led {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .ir-led.on { background: #ff4444; box-shadow: 0 0 8px #ff4444; }
+    .ir-led.off { background: #2a4a5a; }
+    .rfid-value { font-family: 'SF Mono', 'Cascadia Code', monospace; font-size: 13px; color: #00d4aa; word-break: break-all; }
+    .rfid-value.empty { color: #6b8a9a; }
+
+    /* History */
+    .history-card {
+      background: #1a2d3a;
+      border: 1px solid #2a4a5a;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #2a4a5a;
+    }
+    .history-header h3 { font-size: 13px; font-weight: 600; }
+    .history-actions { display: flex; gap: 8px; }
+    .btn-sm {
+      background: none;
+      border: 1px solid #2a4a5a;
+      color: #6b8a9a;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-sm:hover { border-color: #00d4aa; color: #00d4aa; }
+    .history-table-wrap { max-height: 220px; overflow-y: auto; }
+    .history-table-wrap::-webkit-scrollbar { width: 4px; }
+    .history-table-wrap::-webkit-scrollbar-thumb { background: #2a4a5a; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th {
+      position: sticky; top: 0;
+      background: #1a2d3a;
+      padding: 8px 12px;
+      text-align: left;
+      color: #6b8a9a;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #2a4a5a;
+    }
+    td { padding: 8px 12px; border-bottom: 1px solid #1f3543; }
+    tr:last-child td { border-bottom: none; }
+    .tag-rfid { color: #ffaa44; }
+    .tag-ir-on { color: #ff4444; }
+    .tag-ir-off { color: #6b8a9a; }
+    .row-rfid { background: #1f354355; }
+
+    /* Controls */
+    .controls {
+      background: #1a2d3a;
+      border: 1px solid #2a4a5a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .control-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .control-row:last-child { margin-bottom: 0; }
+    .control-row label { font-size: 13px; font-weight: 500; min-width: 90px; }
+    .control-row input {
+      flex: 1;
+      background: #0f1923;
+      border: 1px solid #2a4a5a;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: #e0e6ed;
+      font-size: 14px;
+      font-family: 'SF Mono', monospace;
+    }
+    .control-row input:focus { outline: none; border-color: #00d4aa; }
+    .btn {
+      background: #00d4aa;
+      border: none;
+      color: #0f1923;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn:hover { background: #00e6b8; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-outline {
+      background: none;
+      border: 1px solid #2a4a5a;
+      color: #e0e6ed;
+    }
+    .btn-outline:hover { border-color: #00d4aa; color: #00d4aa; }
+
+    .footer { text-align: center; padding: 16px; font-size: 11px; color: #2a4a5a; }
+
+    .empty-state { padding: 24px; text-align: center; color: #2a4a5a; font-size: 13px; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #1a2d3a; border: 1px solid #2a4a5a; border-radius: 8px;
+      padding: 10px 20px; font-size: 13px; color: #e0e6ed;
+      opacity: 0; transition: opacity .3s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>µ<span>Componente</span></h1>
+    <button class="btn-connect" id="btnConnect">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="connectLabel">Conectar</span>
+    </button>
+  </header>
+
+  <div class="weight-card">
+    <div class="weight-value">
+      <span id="weightInt">0</span><span class="decimal">.<span id="weightDec">00</span></span>
+    </div>
+    <div class="weight-unit">gramos</div>
+  </div>
+
+  <div class="indicators">
+    <div class="indicator">
+      <div class="indicator-label">Sensor IR</div>
+      <div class="indicator-value">
+        <span class="ir-led off" id="irLed"></span>
+        <span id="irLabel">Sin objeto</span>
+      </div>
+    </div>
+    <div class="indicator">
+      <div class="indicator-label">Último RFID</div>
+      <div class="indicator-value rfid-value empty" id="rfidLabel">---</div>
+    </div>
+  </div>
+
+  <div class="history-card">
+    <div class="history-header">
+      <h3>📋 Historial</h3>
+      <div class="history-actions">
+        <button class="btn-sm" id="btnClear">Limpiar</button>
+        <button class="btn-sm" id="btnExportCSV">CSV</button>
+        <button class="btn-sm" id="btnExportJSON">JSON</button>
+      </div>
+    </div>
+    <div class="history-table-wrap" id="historyWrap">
+      <table>
+        <thead><tr>
+          <th>Hora</th><th>Peso (g)</th><th>IR</th><th>RFID</th>
+        </tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState">Aún no hay lecturas</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="control-row">
+      <label>Calibración</label>
+      <input type="text" id="calInput" value="-7050.0">
+      <button class="btn" id="btnCal">Aplicar</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="control-row">
+      <label style="min-width:auto;">Conexión Serial</label>
+      <button class="btn btn-outline" id="btnTestData">Datos de prueba</button>
+    </div>
+  </div>
+
+  <div class="footer">µComponente &mdash; WebSerial + ESP32</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const STORAGE_KEY = 'microcomponente_historial';
+  const MAX_HISTORY = 500;
+
+  let port = null;
+  let reader = null;
+  let connected = false;
+  let buffer = '';
+  let testMode = false;
+  let testInterval = null;
+
+  const history = loadHistory();
+
+  const $ = id => document.getElementById(id);
+
+  const btnConnect    = $('btnConnect');
+  const connectLabel  = $('connectLabel');
+  const statusDot     = $('statusDot');
+  const weightInt     = $('weightInt');
+  const weightDec     = $('weightDec');
+  const irLed         = $('irLed');
+  const irLabel       = $('irLabel');
+  const rfidLabel     = $('rfidLabel');
+  const historyBody   = $('historyBody');
+  const emptyState    = $('emptyState');
+  const calInput      = $('calInput');
+  const btnCal        = $('btnCal');
+  const btnClear      = $('btnClear');
+  const btnExportCSV  = $('btnExportCSV');
+  const btnExportJSON = $('btnExportJSON');
+  const btnTestData   = $('btnTestData');
+  const toastEl       = $('toast');
+
+  // ========== Toast ==========
+  let toastTimer;
+  function toast(msg) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2500);
+  }
+
+  // ========== localStorage ==========
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  function saveHistory() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    } catch {}
+  }
+
+  function addToHistory(entry) {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const ss = String(now.getSeconds()).padStart(2,'0');
+    entry.time = `${hh}:${mm}:${ss}`;
+    entry.ts = now.getTime();
+    history.unshift(entry);
+    if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+    saveHistory();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const tbody = historyBody;
+    tbody.innerHTML = '';
+    if (history.length === 0) {
+      emptyState.style.display = 'block';
+      return;
+    }
+    emptyState.style.display = 'none';
+    history.forEach(e => {
+      const tr = document.createElement('tr');
+      if (e.type === 'rfid') tr.className = 'row-rfid';
+      const irClass = e.ir ? 'tag-ir-on' : 'tag-ir-off';
+      const irText = e.ir ? '🔴 DETECTADO' : '⚫ Sin objeto';
+      tr.innerHTML = `
+        <td>${e.time || '--:--:--'}</td>
+        <td>${e.weight != null ? e.weight.toFixed(2) : '—'}</td>
+        <td class="${irClass}">${irText}</td>
+        <td class="tag-rfid">${e.uid || '—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ========== UI Updates ==========
+  function updateWeight(val) {
+    const whole = Math.floor(Math.abs(val));
+    const dec = Math.abs(val).toFixed(2).slice(-2);
+    weightInt.textContent = val < 0 ? '-' + whole : whole;
+    weightDec.textContent = dec;
+  }
+
+  function updateIR(detected) {
+    irLed.className = 'ir-led ' + (detected ? 'on' : 'off');
+    irLabel.textContent = detected ? '🔴 Objeto detectado' : '⚫ Sin objeto';
+  }
+
+  function updateRFID(uid) {
+    if (uid && uid.length > 0) {
+      rfidLabel.textContent = uid.toUpperCase();
+      rfidLabel.className = 'indicator-value rfid-value';
+    } else {
+      rfidLabel.textContent = '---';
+      rfidLabel.className = 'indicator-value rfid-value empty';
+    }
+  }
+
+  function updateCalibration(val) {
+    calInput.value = val.toFixed(1);
+  }
+
+  // ========== Process JSON from ESP32 ==========
+  function processLine(line) {
+    try {
+      const data = JSON.parse(line);
+      switch (data.t) {
+        case 's':
+          updateWeight(data.w);
+          updateIR(data.i);
+          addToHistory({ type:'sensor', weight: data.w, ir: data.i, uid: null });
+          break;
+        case 'r':
+          updateRFID(data.u);
+          addToHistory({ type:'rfid', weight: null, ir: null, uid: data.u });
+          toast('🏷️ RFID: ' + data.u.toUpperCase());
+          break;
+        case 'c':
+          updateCalibration(data.f);
+          toast('⚙️ Calibración: ' + data.f);
+          break;
+        case 'st':
+          toast('ℹ️ ' + data.m);
+          break;
+      }
+    } catch {}
+  }
+
+  // ========== Serial Read Loop ==========
+  async function readLoop() {
+    try {
+      const decoder = new TextDecoder();
+      while (port && port.readable) {
+        reader = port.readable.getReader();
+        try {
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed) processLine(trimmed);
+            }
+          }
+        } finally {
+          reader.releaseLock();
+          reader = null;
+        }
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError' && err.name !== 'NetworkError') {
+        console.error('Read error:', err);
+      }
+    }
+    disconnect();
+  }
+
+  // ========== Connect / Disconnect ==========
+  async function connect() {
+    if (!('serial' in navigator)) {
+      toast('❌ WebSerial no disponible. Usa Chrome/Edge.');
+      return;
+    }
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 115200 });
+      connected = true;
+      updateConnectUI(true);
+      toast('✅ Conectado');
+      readLoop();
+    } catch (err) {
+      if (err.name !== 'NotFoundError') {
+        toast('❌ Error: ' + err.message);
+      }
+      port = null;
+    }
+  }
+
+  function disconnect() {
+    connected = false;
+    updateConnectUI(false);
+    if (reader) {
+      try { reader.cancel(); } catch {}
+      reader = null;
+    }
+    if (port) {
+      try { port.close(); } catch {}
+      port = null;
+    }
+    toast('🔌 Desconectado');
+  }
+
+  function updateConnectUI(isOn) {
+    btnConnect.className = 'btn-connect' + (isOn ? ' connected' : '');
+    connectLabel.textContent = isOn ? 'Conectado' : 'Conectar';
+    statusDot.className = 'status-dot' + (isOn ? ' on' : '');
+    btnConnect.title = isOn ? 'Haz clic para desconectar' : 'Conectar al ESP32';
+  }
+
+  // ========== Send to Serial ==========
+  async function sendSerial(msg) {
+    if (!port || !port.writable) {
+      if (!testMode) toast('⚠️ No hay conexión Serial activa');
+      return false;
+    }
+    try {
+      const encoder = new TextEncoder();
+      const writer = port.writable.getWriter();
+      await writer.write(encoder.encode(msg + '\n'));
+      writer.releaseLock();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ========== Test Data Mode ==========
+  function startTestMode() {
+    if (testMode) return;
+    testMode = true;
+    btnTestData.textContent = 'Detener prueba';
+    toast('🧪 Generando datos de prueba...');
+    let peso = 100;
+    testInterval = setInterval(() => {
+      peso += (Math.random() - 0.5) * 5;
+      if (peso < 0) peso = 0;
+      const ir = Math.random() > 0.5;
+      processLine(JSON.stringify({ t:'s', w: +peso.toFixed(2), i: ir }));
+    }, 800);
+    setTimeout(() => {
+      processLine(JSON.stringify({ t:'r', u:'ab:cd:ef:01' }));
+    }, 2000);
+    setTimeout(() => {
+      processLine(JSON.stringify({ t:'r', u:'12:34:56:78' }));
+    }, 5000);
+  }
+
+  function stopTestMode() {
+    if (!testMode) return;
+    testMode = false;
+    clearInterval(testInterval);
+    testInterval = null;
+    btnTestData.textContent = 'Datos de prueba';
+    toast('🧪 Prueba detenida');
+  }
+
+  // ========== Calibration ==========
+  async function applyCalibration() {
+    const val = parseFloat(calInput.value);
+    if (isNaN(val)) { toast('⚠️ Ingresa un número válido'); return; }
+    updateCalibration(val);
+    const ok = await sendSerial(JSON.stringify({ t:'cal', f: val }));
+    if (ok) toast('⚙️ Calibración enviada: ' + val.toFixed(1));
+    else if (!testMode) toast('⚠️ No se pudo enviar. ¿ESP32 conectado?');
+  }
+
+  // ========== Clear History ==========
+  function clearHistory() {
+    if (history.length === 0) return;
+    if (!confirm('¿Limpiar todo el historial?')) return;
+    history.length = 0;
+    saveHistory();
+    renderHistory();
+    updateWeight(0);
+    updateIR(false);
+    toast('🗑️ Historial limpiado');
+  }
+
+  // ========== Export ==========
+  function exportCSV() {
+    if (history.length === 0) { toast('⚠️ No hay datos para exportar'); return; }
+    const header = 'Hora,Peso (g),IR,RFID\n';
+    const rows = history.map(e => {
+      const ir = e.ir === true ? 'DETECTADO' : (e.ir === false ? 'SIN_OBJETO' : '');
+      const weight = e.weight != null ? e.weight.toFixed(2) : '';
+      const uid = e.uid || '';
+      return `${e.time || ''},${weight},${ir},${uid}`;
+    }).join('\n');
+    download(header + rows, 'microcomponente_historial.csv', 'text/csv');
+    toast('📥 CSV descargado');
+  }
+
+  function exportJSON() {
+    if (history.length === 0) { toast('⚠️ No hay datos para exportar'); return; }
+    const json = JSON.stringify(history, null, 2);
+    download(json, 'microcomponente_historial.json', 'application/json');
+    toast('📥 JSON descargado');
+  }
+
+  function download(content, filename, mime) {
+    const blob = new Blob([content], { type: mime + ';charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ========== Event Listeners ==========
+  btnConnect.addEventListener('click', () => {
+    if (connected) {
+      disconnect();
+    } else {
+      stopTestMode();
+      connect();
+    }
+  });
+
+  btnTestData.addEventListener('click', () => {
+    if (testMode) { stopTestMode(); }
+    else { if (connected) disconnect(); startTestMode(); }
+  });
+
+  btnCal.addEventListener('click', applyCalibration);
+  calInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyCalibration(); });
+
+  btnClear.addEventListener('click', clearHistory);
+  btnExportCSV.addEventListener('click', exportCSV);
+  btnExportJSON.addEventListener('click', exportJSON);
+
+  // ========== Init ==========
+  renderHistory();
+  updateConnectUI(false);
+
+  if ('serial' in navigator) {
+    navigator.serial.addEventListener('disconnect', (e) => {
+      if (port && port === e.target) {
+        disconnect();
+        toast('🔌 Puerto desconectado');
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>
